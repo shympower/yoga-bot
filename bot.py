@@ -3,12 +3,17 @@ import telebot
 import openai
 import requests
 from io import BytesIO
+from time import sleep
 
 # Настройки
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai.api_key = OPENAI_API_KEY
 bot = telebot.TeleBot(BOT_TOKEN)
+
+# Сброс Webhook на случай конфликта
+bot.remove_webhook()
+sleep(3)  # даём телеграму отдохнуть
 
 # Системный промпт
 SYSTEM_PROMPT = (
@@ -18,7 +23,6 @@ SYSTEM_PROMPT = (
     "Если клиент хочет записаться — спроси имя и удобное время, и скажи, что передашь @e2e4e6e8."
 )
 
-# GPT-ответ
 def ask_gpt(user_message):
     try:
         response = openai.ChatCompletion.create(
@@ -35,14 +39,12 @@ def ask_gpt(user_message):
         print("GPT Error:", e)
         return "Извините, я немного задумался. Повторите, пожалуйста?"
 
-# Обработка текста
 @bot.message_handler(content_types=["text"])
 def handle_text(message):
     user_text = message.text
     reply = ask_gpt(user_text)
     bot.reply_to(message, reply)
 
-# Обработка голосовых
 @bot.message_handler(content_types=["voice"])
 def handle_voice(message):
     file_info = bot.get_file(message.voice.file_id)
